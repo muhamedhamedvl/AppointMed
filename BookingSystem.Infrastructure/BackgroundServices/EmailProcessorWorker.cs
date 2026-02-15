@@ -1,7 +1,6 @@
+using BookingSystem.Application.Interfaces.Repositories;
 using BookingSystem.Application.Interfaces.Services;
 using BookingSystem.Domain.Enums;
-using BookingSystem.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -43,14 +42,10 @@ public class EmailProcessorWorker : BackgroundService
     private async Task ProcessPendingEmailsAsync(CancellationToken cancellationToken)
     {
         using var scope = _serviceProvider.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var emailQueueRepository = scope.ServiceProvider.GetRequiredService<IEmailQueueRepository>();
         var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
 
-        var pendingEmails = await context.EmailQueues
-            .Where(e => e.Status == EmailStatus.Pending && e.RetryCount < e.MaxRetries)
-            .OrderBy(e => e.CreatedAt)
-            .Take(10)
-            .ToListAsync(cancellationToken);
+        var pendingEmails = (await emailQueueRepository.GetPendingAsync(10)).ToList();
 
         if (pendingEmails.Count == 0)
         {
@@ -113,8 +108,10 @@ public class EmailProcessorWorker : BackgroundService
                     );
                 }
             }
+
+            await emailQueueRepository.UpdateAsync(email);
         }
 
-        await context.SaveChangesAsync(cancellationToken);
+        await emailQueueRepository.SaveChangesAsync();
     }
 }

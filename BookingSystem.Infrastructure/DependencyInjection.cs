@@ -84,25 +84,24 @@ public static class DependencyInjection
         });
 
         // Register Repositories
-        services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IDoctorRepository, DoctorRepository>();
+        services.AddScoped<IAppointmentRepository, AppointmentRepository>();
+        services.AddScoped<IClinicRepository, ClinicRepository>();
+        services.AddScoped<IPatientRepository, PatientRepository>();
+        services.AddScoped<IReviewRepository, ReviewRepository>();
+        services.AddScoped<IAvailableTimeSlotRepository, AvailableTimeSlotRepository>();
+        services.AddScoped<IEmailQueueRepository, EmailQueueRepository>();
+        services.AddScoped<IAdminStatisticsRepository, AdminStatisticsRepository>();
+        services.AddScoped<ITransactionManager, TransactionManager>();
 
-        // Register Services
+        // Register Infrastructure-specific services
+        services.AddScoped<IUserInfoProvider, UserInfoProvider>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IEmailService, EmailService>();
-        services.AddScoped<IEmailQueueService, EmailQueueService>();
         services.AddScoped<IGoogleAuthService, GoogleAuthService>();
-
-        // Register Appointment System Services
-        services.AddScoped<IDoctorService, DoctorService>();
-        services.AddScoped<IPatientService, PatientService>();
-        services.AddScoped<IAppointmentService, AppointmentService>();
-        services.AddScoped<IReviewService, ReviewService>();
-        services.AddScoped<IClinicService, ClinicService>();
-        services.AddScoped<IAdminService, AdminService>();
 
         // Add HttpContextAccessor
         services.AddHttpContextAccessor();
