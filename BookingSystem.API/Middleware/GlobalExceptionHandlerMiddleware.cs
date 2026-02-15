@@ -1,9 +1,8 @@
 using System.Net;
 using System.Text.Json;
 using BookingSystem.Application.DTOs.Common;
-using BookingSystem.Domain.Exceptions;
+using BookingSystem.Application.Exceptions;
 using FluentValidation;
-using Microsoft.EntityFrameworkCore;
 
 namespace BookingSystem.API.Middleware;
 
@@ -53,11 +52,6 @@ public class GlobalExceptionHandlerMiddleware
             case ConcurrencyException concurrencyException:
                 statusCode = HttpStatusCode.Conflict;
                 message = concurrencyException.Message;
-                break;
-
-            case DbUpdateConcurrencyException:
-                statusCode = HttpStatusCode.Conflict;
-                message = "The resource was modified by another user. Please refresh and try again.";
                 break;
 
             case NotFoundException notFoundException:

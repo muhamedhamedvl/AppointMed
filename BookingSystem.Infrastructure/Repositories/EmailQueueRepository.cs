@@ -2,6 +2,7 @@ using BookingSystem.Application.Interfaces.Repositories;
 using BookingSystem.Domain.Entities;
 using BookingSystem.Domain.Enums;
 using BookingSystem.Infrastructure.Data;
+using BookingSystem.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace BookingSystem.Infrastructure.Repositories;
@@ -38,6 +39,6 @@ public class EmailQueueRepository : IEmailQueueRepository
 
     public async Task<int> SaveChangesAsync()
     {
-        return await _context.SaveChangesAsync();
+        return await DbExceptionTranslator.SaveChangesWithTranslationAsync(() => _context.SaveChangesAsync());
     }
 }

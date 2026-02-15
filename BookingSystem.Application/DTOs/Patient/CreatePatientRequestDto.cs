@@ -1,4 +1,4 @@
-using BookingSystem.Domain.Enums;
+using BookingSystem.Application.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace BookingSystem.Application.DTOs.Patient;

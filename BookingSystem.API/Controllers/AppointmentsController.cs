@@ -1,9 +1,7 @@
 using BookingSystem.Application.DTOs.Appointment;
 using BookingSystem.Application.DTOs.Common;
-using BookingSystem.Application.Features.Appointments.Commands;
+using BookingSystem.Application.Enums;
 using BookingSystem.Application.Interfaces.Services;
-using BookingSystem.Domain.Enums;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
@@ -21,16 +19,13 @@ namespace BookingSystem.API.Controllers;
 [Produces("application/json")]
 public class AppointmentsController : ControllerBase
 {
-    private readonly IMediator _mediator;
     private readonly IAppointmentService _appointmentService;
     private readonly ILogger<AppointmentsController> _logger;
 
     public AppointmentsController(
-        IMediator mediator,
         IAppointmentService appointmentService,
         ILogger<AppointmentsController> logger)
     {
-        _mediator = mediator;
         _appointmentService = appointmentService;
         _logger = logger;
     }
@@ -51,7 +46,7 @@ public class AppointmentsController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized(ApiResponse<AppointmentDto>.FailureResponse("User not authenticated"));
 
-        var result = await _mediator.Send(new BookAppointmentCommand { UserId = userId, Request = request });
+        var result = await _appointmentService.BookAppointmentAsync(userId, request);
         return Ok(ApiResponse<AppointmentDto>.SuccessResponse(result, "Appointment booked successfully."));
     }
 
@@ -132,7 +127,7 @@ public class AppointmentsController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized(ApiResponse<AppointmentDto>.FailureResponse("User not authenticated"));
 
-        var result = await _mediator.Send(new CancelAppointmentCommand { AppointmentId = id, UserId = userId, Request = request });
+        var result = await _appointmentService.CancelAppointmentAsync(id, userId, request);
         return Ok(ApiResponse<AppointmentDto>.SuccessResponse(result, "Appointment cancelled."));
     }
 

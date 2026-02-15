@@ -1,4 +1,4 @@
-using BookingSystem.Domain.Enums;
+using BookingSystem.Application.Enums;
 
 namespace BookingSystem.Application.DTOs.Appointment;
 

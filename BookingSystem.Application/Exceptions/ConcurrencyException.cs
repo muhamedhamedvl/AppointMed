@@ -1,4 +1,4 @@
-namespace BookingSystem.Domain.Exceptions;
+namespace BookingSystem.Application.Exceptions;
 
 public class ConcurrencyException : Exception
 {
@@ -6,7 +6,7 @@ public class ConcurrencyException : Exception
     {
     }
 
-    public ConcurrencyException(string message, Exception innerException) 
+    public ConcurrencyException(string message, Exception innerException)
         : base(message, innerException)
     {
     }

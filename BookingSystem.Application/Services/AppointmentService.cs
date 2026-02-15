@@ -1,12 +1,14 @@
 using BookingSystem.Application.DTOs.Appointment;
 using BookingSystem.Application.DTOs.Common;
+using BookingSystem.Application.Enums;
+using BookingSystem.Application.Exceptions;
+using BookingSystem.Application.Helpers;
 using BookingSystem.Application.Interfaces.Repositories;
 using BookingSystem.Application.Interfaces.Services;
 using BookingSystem.Domain.Entities;
-using BookingSystem.Domain.Enums;
-using BookingSystem.Domain.Exceptions;
-using BookingSystem.Domain.Helpers;
 using Microsoft.Extensions.Logging;
+
+using DomainAppointmentStatus = BookingSystem.Domain.Enums.AppointmentStatus;
 
 namespace BookingSystem.Application.Services;
 
@@ -83,7 +85,7 @@ public class AppointmentService : IAppointmentService
                 AppointmentDate = timeSlot.Date,
                 StartTime = timeSlot.StartTime,
                 EndTime = timeSlot.EndTime,
-                Status = AppointmentStatus.Pending,
+                Status = DomainAppointmentStatus.Pending,
                 ReasonForVisit = request.ReasonForVisit
             };
 
@@ -129,21 +131,22 @@ public class AppointmentService : IAppointmentService
         IEnumerable<Appointment> appointments;
         int totalCount;
 
+        var domainStatus = status.HasValue ? (DomainAppointmentStatus)(int)status.Value : (DomainAppointmentStatus?)null;
         if (patient != null)
         {
             var skip = (pageNumber - 1) * pageSize;
             appointments = await _appointmentRepository.GetByPatientIdAsync(
-                patient.Id, status, upcoming, past, skip, pageSize);
+                patient.Id, domainStatus, upcoming, past, skip, pageSize);
             totalCount = await _appointmentRepository.CountByPatientIdAsync(
-                patient.Id, status, upcoming, past);
+                patient.Id, domainStatus, upcoming, past);
         }
         else if (doctor != null)
         {
             var skip = (pageNumber - 1) * pageSize;
             appointments = await _appointmentRepository.GetByDoctorIdAsync(
-                doctor.Id, status, upcoming, past, skip, pageSize);
+                doctor.Id, domainStatus, upcoming, past, skip, pageSize);
             totalCount = await _appointmentRepository.CountByDoctorIdAsync(
-                doctor.Id, status, upcoming, past);
+                doctor.Id, domainStatus, upcoming, past);
         }
         else
         {
@@ -170,11 +173,12 @@ public class AppointmentService : IAppointmentService
         if (doctor == null || doctor.UserId != userId)
             throw new Exception("Unauthorized or doctor not found");
 
+        var domainStatus = status.HasValue ? (DomainAppointmentStatus)(int)status.Value : (DomainAppointmentStatus?)null;
         var skip = (pageNumber - 1) * pageSize;
         var appointments = await _appointmentRepository.GetByDoctorIdAsync(
-            doctorId, status, upcoming, past, skip, pageSize);
+            doctorId, domainStatus, upcoming, past, skip, pageSize);
         var totalCount = await _appointmentRepository.CountByDoctorIdAsync(
-            doctorId, status, upcoming, past);
+            doctorId, domainStatus, upcoming, past);
 
         var userIds = appointments.SelectMany(a => new[] { a.Patient!.UserId, a.Doctor!.UserId }).Distinct().ToList();
         var users = await _userInfoProvider.GetByIdsAsync(userIds);
@@ -195,10 +199,10 @@ public class AppointmentService : IAppointmentService
             throw new BusinessRuleException("Status is required.");
 
         var statusStr = request.Status.Trim();
-        if (!Enum.TryParse<AppointmentStatus>(statusStr, ignoreCase: true, out var newStatus))
+        if (!Enum.TryParse<DomainAppointmentStatus>(statusStr, ignoreCase: true, out var newStatus))
         {
             if (string.Equals(statusStr, "Cancelled", StringComparison.OrdinalIgnoreCase))
-                newStatus = AppointmentStatus.Canceled;
+                newStatus = DomainAppointmentStatus.Canceled;
             else
                 throw new BusinessRuleException($"Invalid status '{request.Status}'. Allowed: Pending, Confirmed, Completed, Cancelled, NoShow.");
         }
@@ -212,41 +216,41 @@ public class AppointmentService : IAppointmentService
         }
         catch (InvalidStatusTransitionException)
         {
-            throw new InvalidStatusTransitionException($"Invalid transition from {appointment.Status} to {newStatus}");
+            throw;
         }
 
         switch (newStatus)
         {
-            case AppointmentStatus.Confirmed:
+            case DomainAppointmentStatus.Confirmed:
                 if (appointment.Doctor!.UserId != userId)
                     throw new UnauthorizedAccessException("Only the assigned doctor can confirm appointments.");
-                appointment.Status = AppointmentStatus.Confirmed;
+                appointment.Status = DomainAppointmentStatus.Confirmed;
                 appointment.ModifiedAt = DateTime.UtcNow;
                 break;
 
-            case AppointmentStatus.Completed:
+            case DomainAppointmentStatus.Completed:
                 if (appointment.Doctor!.UserId != userId)
                     throw new UnauthorizedAccessException("Only the assigned doctor can complete appointments.");
-                appointment.Status = AppointmentStatus.Completed;
+                appointment.Status = DomainAppointmentStatus.Completed;
                 appointment.Notes = request.Notes;
                 appointment.ModifiedAt = DateTime.UtcNow;
                 break;
 
-            case AppointmentStatus.NoShow:
+            case DomainAppointmentStatus.NoShow:
                 if (appointment.Doctor!.UserId != userId)
                     throw new UnauthorizedAccessException("Only the assigned doctor can mark appointment as NoShow.");
-                appointment.Status = AppointmentStatus.NoShow;
+                appointment.Status = DomainAppointmentStatus.NoShow;
                 appointment.ModifiedAt = DateTime.UtcNow;
                 break;
 
-            case AppointmentStatus.Canceled:
+            case DomainAppointmentStatus.Canceled:
                 var canCancel = appointment.Patient!.UserId == userId || appointment.Doctor!.UserId == userId;
                 if (!canCancel) canCancel = await _userInfoProvider.IsInRoleAsync(userId, "Admin");
                 if (!canCancel)
                     throw new UnauthorizedAccessException("Unauthorized to cancel this appointment.");
                 if (appointment.AppointmentDate < DateOnly.FromDateTime(DateTime.UtcNow))
                     throw new BusinessRuleException("Cannot cancel past appointments.");
-                appointment.Status = AppointmentStatus.Canceled;
+                appointment.Status = DomainAppointmentStatus.Canceled;
                 appointment.CancellationReason = request.CancellationReason;
                 appointment.CancelledAt = DateTime.UtcNow;
                 appointment.ModifiedAt = DateTime.UtcNow;
@@ -273,7 +277,7 @@ public class AppointmentService : IAppointmentService
 
         try
         {
-            AppointmentStatusTransitionValidator.ValidateTransition(appointment.Status, AppointmentStatus.Confirmed);
+            AppointmentStatusTransitionValidator.ValidateTransition(appointment.Status, DomainAppointmentStatus.Confirmed);
         }
         catch (InvalidOperationException ex)
         {
@@ -281,7 +285,7 @@ public class AppointmentService : IAppointmentService
             throw new InvalidStatusTransitionException(ex.Message);
         }
 
-        appointment.Status = AppointmentStatus.Confirmed;
+        appointment.Status = DomainAppointmentStatus.Confirmed;
         appointment.ModifiedAt = DateTime.UtcNow;
         await _appointmentRepository.UpdateAsync(appointment);
         await _appointmentRepository.SaveChangesAsync();
@@ -299,7 +303,7 @@ public class AppointmentService : IAppointmentService
 
         try
         {
-            AppointmentStatusTransitionValidator.ValidateTransition(appointment.Status, AppointmentStatus.Completed);
+            AppointmentStatusTransitionValidator.ValidateTransition(appointment.Status, DomainAppointmentStatus.Completed);
         }
         catch (InvalidOperationException ex)
         {
@@ -307,7 +311,7 @@ public class AppointmentService : IAppointmentService
             throw new InvalidStatusTransitionException(ex.Message);
         }
 
-        appointment.Status = AppointmentStatus.Completed;
+        appointment.Status = DomainAppointmentStatus.Completed;
         appointment.Notes = request.Notes;
         appointment.ModifiedAt = DateTime.UtcNow;
         await _appointmentRepository.UpdateAsync(appointment);
@@ -330,7 +334,7 @@ public class AppointmentService : IAppointmentService
 
         try
         {
-            AppointmentStatusTransitionValidator.ValidateTransition(appointment.Status, AppointmentStatus.Canceled);
+            AppointmentStatusTransitionValidator.ValidateTransition(appointment.Status, DomainAppointmentStatus.Canceled);
         }
         catch (InvalidOperationException ex)
         {
@@ -338,7 +342,7 @@ public class AppointmentService : IAppointmentService
             throw new InvalidStatusTransitionException(ex.Message);
         }
 
-        appointment.Status = AppointmentStatus.Canceled;
+        appointment.Status = DomainAppointmentStatus.Canceled;
         appointment.CancellationReason = request.CancellationReason;
         appointment.CancelledAt = DateTime.UtcNow;
         appointment.ModifiedAt = DateTime.UtcNow;
@@ -362,7 +366,7 @@ public class AppointmentService : IAppointmentService
         if (appointment == null) throw new Exception("Appointment not found");
         if (appointment.Patient!.UserId != userId)
             throw new Exception("Only the patient can reschedule appointments");
-        if (appointment.Status == AppointmentStatus.Canceled || appointment.Status == AppointmentStatus.Completed)
+        if (appointment.Status == DomainAppointmentStatus.Canceled || appointment.Status == DomainAppointmentStatus.Completed)
             throw new Exception("Cannot reschedule canceled or completed appointments");
 
         await using var transaction = await _transactionManager.BeginTransactionAsync();
@@ -405,12 +409,13 @@ public class AppointmentService : IAppointmentService
     public async Task<PaginatedResult<AppointmentDto>> GetAllAppointmentsAsync(
         AppointmentStatus? status, int? doctorId, int? patientId, DateTime? startDate, DateTime? endDate, int pageNumber, int pageSize)
     {
+        var domainStatus = status.HasValue ? (DomainAppointmentStatus)(int)status.Value : (DomainAppointmentStatus?)null;
         var skip = (pageNumber - 1) * pageSize;
         DateOnly? start = startDate.HasValue ? DateOnly.FromDateTime(startDate.Value) : null;
         DateOnly? end = endDate.HasValue ? DateOnly.FromDateTime(endDate.Value) : null;
 
-        var appointments = await _appointmentRepository.GetAllAsync(status, doctorId, patientId, start, end, skip, pageSize);
-        var totalCount = await _appointmentRepository.CountAllAsync(status, doctorId, patientId, start, end);
+        var appointments = await _appointmentRepository.GetAllAsync(domainStatus, doctorId, patientId, start, end, skip, pageSize);
+        var totalCount = await _appointmentRepository.CountAllAsync(domainStatus, doctorId, patientId, start, end);
 
         var userIds = appointments.SelectMany(a => new[] { a.Patient!.UserId, a.Doctor!.UserId }).Distinct().ToList();
         var users = await _userInfoProvider.GetByIdsAsync(userIds);
@@ -449,7 +454,7 @@ public class AppointmentService : IAppointmentService
             AppointmentDate = appointment.AppointmentDate,
             StartTime = appointment.StartTime,
             EndTime = appointment.EndTime,
-            Status = appointment.Status,
+            Status = (Enums.AppointmentStatus)(int)appointment.Status,
             ReasonForVisit = appointment.ReasonForVisit,
             CreatedAt = appointment.CreatedAt
         };
@@ -481,7 +486,7 @@ public class AppointmentService : IAppointmentService
             AppointmentDate = appointment.AppointmentDate,
             StartTime = appointment.StartTime,
             EndTime = appointment.EndTime,
-            Status = appointment.Status,
+            Status = (Enums.AppointmentStatus)(int)appointment.Status,
             ReasonForVisit = appointment.ReasonForVisit,
             Notes = appointment.Notes,
             CancellationReason = appointment.CancellationReason,
@@ -508,7 +513,7 @@ public class AppointmentService : IAppointmentService
             AppointmentDate = apt.AppointmentDate,
             StartTime = apt.StartTime,
             EndTime = apt.EndTime,
-            Status = apt.Status,
+            Status = (Enums.AppointmentStatus)(int)apt.Status,
             ReasonForVisit = apt.ReasonForVisit,
             CreatedAt = apt.CreatedAt
         };

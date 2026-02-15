@@ -1,4 +1,5 @@
 using BookingSystem.Application.DTOs.Patient;
+using BookingSystem.Application.Enums;
 using BookingSystem.Application.Interfaces.Repositories;
 using BookingSystem.Application.Interfaces.Services;
 using BookingSystem.Domain.Entities;
@@ -25,7 +26,7 @@ public class PatientService : IPatientService
         {
             UserId = userId,
             DateOfBirth = request.DateOfBirth,
-            Gender = request.Gender,
+            Gender = (Domain.Enums.Gender)(int)request.Gender,
             BloodGroup = request.BloodGroup,
             Address = request.Address,
             EmergencyContact = request.EmergencyContact,
@@ -60,7 +61,7 @@ public class PatientService : IPatientService
         if (request.DateOfBirth.HasValue)
             patient.DateOfBirth = request.DateOfBirth.Value;
         if (request.Gender.HasValue)
-            patient.Gender = request.Gender.Value;
+            patient.Gender = (Domain.Enums.Gender)(int)request.Gender.Value;
         if (request.BloodGroup != null)
             patient.BloodGroup = request.BloodGroup;
         if (request.Address != null)
@@ -100,7 +101,7 @@ public class PatientService : IPatientService
             LastName = user?.LastName ?? "",
             Email = user?.Email ?? "",
             DateOfBirth = patient.DateOfBirth,
-            Gender = patient.Gender,
+            Gender = (Gender)(int)patient.Gender,
             BloodGroup = patient.BloodGroup,
             Address = patient.Address,
             EmergencyContact = patient.EmergencyContact,

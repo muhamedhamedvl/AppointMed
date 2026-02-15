@@ -1,4 +1,3 @@
-using BookingSystem.Application.Behaviors;
 using BookingSystem.Application.Interfaces.Services;
 using BookingSystem.Application.Services;
 using FluentValidation;
@@ -15,13 +14,6 @@ public static class DependencyInjection
 
         // Register AutoMapper
         services.AddAutoMapper(assembly);
-
-        // Register MediatR
-        services.AddMediatR(cfg =>
-        {
-            cfg.RegisterServicesFromAssembly(assembly);
-            cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
-        });
 
         // Register FluentValidation
         services.AddValidatorsFromAssembly(assembly);

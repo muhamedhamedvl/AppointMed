@@ -1,4 +1,4 @@
-namespace BookingSystem.Domain.Exceptions;
+namespace BookingSystem.Application.Exceptions;
 
 public class InvalidStatusTransitionException : Exception
 {

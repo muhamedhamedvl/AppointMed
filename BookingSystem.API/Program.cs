@@ -1,4 +1,6 @@
 using System.Reflection;
+using BookingSystem.API.Filters;
+using BookingSystem.API.Middleware;
 using BookingSystem.Application;
 using BookingSystem.Infrastructure;
 using Microsoft.AspNetCore.Identity;
@@ -35,8 +37,11 @@ public class Program
             // Use Serilog
             builder.Host.UseSerilog();
 
-            // Add Controllers
-            builder.Services.AddControllers();
+            // Add Controllers with Validation filter
+            builder.Services.AddControllers(options =>
+            {
+                options.Filters.Add<ValidationFilter>();
+            });
 
             // Add Application & Infrastructure layers
             builder.Services.AddApplication();
@@ -104,11 +109,19 @@ public class Program
             // Safe Role Seeding
             await SafeSeedRolesAsync(app);
 
+            // Exception handling first (wraps entire pipeline)
+            app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
+
             // Swagger always enabled
             app.UseSwagger();
             app.UseSwaggerUI();
 
             app.UseCors("AllowAll");
+
+            // Correlation ID, security headers, rate limiting
+            app.UseMiddleware<CorrelationIdMiddleware>();
+            app.UseMiddleware<SecurityHeadersMiddleware>();
+            app.UseMiddleware<RateLimitingMiddleware>();
 
             app.UseAuthentication();
             app.UseAuthorization();

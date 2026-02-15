@@ -1,10 +1,10 @@
 using BookingSystem.Application.DTOs.Common;
 using BookingSystem.Application.DTOs.Review;
+using BookingSystem.Application.Exceptions;
 using BookingSystem.Application.Interfaces.Repositories;
 using BookingSystem.Application.Interfaces.Services;
 using BookingSystem.Domain.Entities;
 using BookingSystem.Domain.Enums;
-using BookingSystem.Domain.Exceptions;
 
 namespace BookingSystem.Application.Services;
 

@@ -1,6 +1,6 @@
 using BookingSystem.Application.DTOs.Appointment;
 using BookingSystem.Application.DTOs.Common;
-using BookingSystem.Domain.Enums;
+using BookingSystem.Application.Enums;
 
 namespace BookingSystem.Application.Interfaces.Services;
 
