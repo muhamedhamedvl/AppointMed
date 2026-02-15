@@ -1,0 +1,49 @@
+# Build
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+[Dd]ebug/
+[Rr]elease/
+out/
+publish-out/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# User-specific (secrets are stored here - never commit)
+appsettings.*.local.json
+*.local.json
+secrets.json
+
+# Rider
+.idea/
+*.sln.iml
+
+# macOS
+.DS_Store
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+
+# Test
+[Tt]est[Rr]esult*/
+*.trx
+*.coverage
+*.coveragexml
+
+# ASP.NET
+*.pidb
+*.dbmdl
+*.jfm
+
+# Backup
+*.bak
+*~
