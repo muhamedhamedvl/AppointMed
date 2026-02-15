@@ -107,14 +107,11 @@ From the solution directory:
 dotnet ef database update --project BookingSystem.Infrastructure --startup-project BookingSystem.API
 ```
 
-### 4. Run the API
+### 3. Run the API
 
 ```bash
 dotnet run --project BookingSystem.API
 ```
-
-- API: **https://localhost:7xxx** or **http://localhost:5xxx** (see console).  
-- Swagger UI: **https://localhost:7xxx/swagger** (or same port as API + `/swagger`).
 
 ---
 
