@@ -218,7 +218,7 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<object>.SuccessResponse(null, message));
     }
 
-    [HttpPatch("logout")]
+    [HttpPost("logout")]
     [Authorize]
     [SwaggerOperation(
         Summary = "Logout user",
